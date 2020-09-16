@@ -1,0 +1,4 @@
+
+On 2020-09-15 20:35:27.866199: Completed run. Scraped 2866 with 2538 fully filled out articles.
+On 2020-09-15 21:36:39.041820: Completed run. Scraped 1 with 1 fully filled out articles.
+On 2020-09-16 00:37:36.555154: Completed run. Scraped 0 with 0 fully filled out articles.
