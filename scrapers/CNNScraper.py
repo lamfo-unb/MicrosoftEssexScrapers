@@ -19,6 +19,7 @@ except Exception:
 
 timeout = 60
 
+
 class Article:
     def __init__(self, title, date, url, content, categories, search_terms, author):
         if type(title) is not str:
@@ -65,16 +66,18 @@ class Article:
             file.write(("\n" + self.content).encode("utf8"))
 
     def to_df(self):
-        return pd.DataFrame({
-            "URL" : [self.url],
-            "Date" : [self.date],
-            "Source" : ["CNN"], 
-            "Categories" : [self.categories],
-            "Search Terms" : [self.search_terms], 
-            "Text" : [self.content], 
-            "Author" : [self.author],
-            "Country" : ["USA"]
-        })
+        return pd.DataFrame(
+            {
+                "URL": [self.url],
+                "Date": [self.date],
+                "Source": ["CNN"],
+                "Categories": [self.categories],
+                "Search Terms": [self.search_terms],
+                "Text": [self.content],
+                "Author": [self.author],
+                "Country": ["USA"],
+            }
+        )
 
 
 class CNN_Scraper(Scraper):
@@ -87,35 +90,41 @@ class CNN_Scraper(Scraper):
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--ignore-ssl-errors")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
-        options.add_argument("--incognito") #incognito disables cache
-        
+        options.add_argument("--incognito")  # incognito disables cache
 
-        self.driver =  webdriver.Chrome(
-            ChromeDriverManager().install(), options=options
-        )
+        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 
         self.driver.delete_all_cookies()
 
         self.search_terms = search_terms
         query = search_terms.replace(" ", "%20")
         self.url = f"https://edition.cnn.com/search/?size=10&q={query}&page=1"
-        
+
         self.log_path = output_path + "\\update_log.txt"
         self.path = output_path + "\\articles.csv"
-        
+
         try:
             self.prev_articles = pd.read_csv(self.path)
         except FileNotFoundError:
-            self.prev_articles = pd.DataFrame(columns = ["URL", "Date", "Source", "Categories", "Search Terms", "Text", "Author", "Country"])
-        
+            self.prev_articles = pd.DataFrame(
+                columns=[
+                    "URL",
+                    "Date",
+                    "Source",
+                    "Categories",
+                    "Search Terms",
+                    "Text",
+                    "Author",
+                    "Country",
+                ]
+            )
+
         self.prev_urls = self.prev_articles["URL"].to_list()
-
-
 
     def _load_CNN_page(self, url):
         def get_loaded_frame(driver):
             return driver.find_elements_by_xpath("html[@data-triggered='true']")
-        
+
         self.driver.get(url)
         wait = WebDriverWait(self.driver, self.timeout)
         wait.until(get_loaded_frame)
@@ -133,7 +142,7 @@ class CNN_Scraper(Scraper):
                 raise
 
         page = BeautifulSoup(self.driver.page_source, "html.parser")
-        
+
         return page
 
     def _get_total_results(self):
@@ -149,7 +158,7 @@ class CNN_Scraper(Scraper):
         except Exception:
             logging.info("Total results didn't show.. trying again")
             total_results = self._get_total_results()
-        
+
         try:
             self._scrape_articles(total_results)
         except Exception as e:
@@ -164,8 +173,8 @@ class CNN_Scraper(Scraper):
                 self.driver.close()
             except Exception as e:
                 logging.error(f"Unable to close the chrome driver: {str(e)}")
-    
-    def _scrape_articles(self, total_results): # TODO add timeout
+
+    def _scrape_articles(self, total_results):  # TODO add timeout
         pagenum = 1
 
         while (pagenum * 10) <= int(total_results):
@@ -193,7 +202,6 @@ class CNN_Scraper(Scraper):
 
             pagenum += 1
 
-    
     def _create_article(self, article):
         title = article.find("h3", {"class": "cnn-search__result-headline"})
         article_url = "https:" + title.find_all("a", href=True)[0]["href"]
@@ -202,43 +210,59 @@ class CNN_Scraper(Scraper):
         content = article.find("div", {"class": "cnn-search__result-body"})
         try:
             article_soup = self._get_CNN_soup(article_url)
-            article_class = article_soup.find("body").find("div", {"class" : "pg-right-rail-tall pg-wrapper "}).find("article")
-            topic = article_class.find("meta", {"itemprop" : "isPartOf"})["content"]
-            author = article_class.find("meta", {"itemprop" : "author"})["content"]
-            date = article_class.find("meta", {"itemprop" : "datePublished"})["content"]
+            article_class = (
+                article_soup.find("body")
+                .find("div", {"class": "pg-right-rail-tall pg-wrapper "})
+                .find("article")
+            )
+            topic = article_class.find("meta", {"itemprop": "isPartOf"})["content"]
+            author = article_class.find("meta", {"itemprop": "author"})["content"]
+            date = article_class.find("meta", {"itemprop": "datePublished"})["content"]
             self.data_with_tags += 1
-            
+
         except (AttributeError, TypeError) as e:
             logging.error(f"Doesn't contain metadata")
             topic, author, date = None, None, None
         except Exception as e:
             logging.error(f"Failed to get article because of {str(e)}")
             return
-        
-        update = Article(
-                title.text.lstrip(), date, article_url, content.text, topic, "coronavirus measures", author
-                )
 
-        self.prev_articles = self.prev_articles.append(update.to_df(), ignore_index = True)
+        update = Article(
+            title.text.lstrip(),
+            date,
+            article_url,
+            content.text,
+            topic,
+            "coronavirus measures",
+            author,
+        )
+
+        self.prev_articles = self.prev_articles.append(
+            update.to_df(), ignore_index=True
+        )
         self.prev_urls.append(article_url)
         self.articles_scraped += 1
+
     def get_name(self):
         return "CNN Scraper"
-    def _update_log(self, text):  
+
+    def _update_log(self, text):
         today = datetime.now()
         mode = "w+"
         if os.path.exists(self.log_path):
             mode = "a"
         with open(self.log_path, mode) as f:
-                f.write(f"\nOn {today}: {text}")
+            f.write(f"\nOn {today}: {text}")
 
 
 if __name__ == "__main__":
     logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
-            datefmt="%m-%d %H:%M",
-            handlers=[logging.StreamHandler()],
-        )
-    CNN_scraper = CNN_Scraper(os.path.join(os.getcwd(), "results\\CNN"), "coronavirus measures")
+        level=logging.INFO,
+        format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+        datefmt="%m-%d %H:%M",
+        handlers=[logging.StreamHandler()],
+    )
+    CNN_scraper = CNN_Scraper(
+        os.path.join(os.getcwd(), "results\\CNN"), "coronavirus measures"
+    )
     CNN_scraper.run()
