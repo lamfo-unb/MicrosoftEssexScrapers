@@ -7,8 +7,12 @@ import re
 import requests
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.expected_conditions import staleness_of
+
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+
 import time
 from webdriver_manager.chrome import ChromeDriverManager
 
@@ -71,8 +75,8 @@ class Article:
                 "URL": [self.url],
                 "Date": [self.date],
                 "Source": ["CNN"],
-                "Categories": [self.categories],
-                "Search Terms": [self.search_terms],
+                "Category": [self.categories],
+                "Search": [self.search_terms],
                 "Text": [self.content],
                 "Author": [self.author],
                 "Country": ["USA"],
@@ -111,8 +115,8 @@ class CNN_Scraper(Scraper):
                     "URL",
                     "Date",
                     "Source",
-                    "Categories",
-                    "Search Terms",
+                    "Category",
+                    "Search",
                     "Text",
                     "Author",
                     "Country",
@@ -122,12 +126,10 @@ class CNN_Scraper(Scraper):
         self.prev_urls = self.prev_articles["URL"].to_list()
 
     def _load_CNN_page(self, url):
-        def get_loaded_frame(driver):
-            return driver.find_elements_by_xpath("html[@data-triggered='true']")
 
         self.driver.get(url)
         wait = WebDriverWait(self.driver, self.timeout)
-        wait.until(get_loaded_frame)
+        wait.until(EC.presence_of_element_located((By.ID, "segment")))
 
     def _get_CNN_soup(self, url):
 
@@ -210,18 +212,24 @@ class CNN_Scraper(Scraper):
         content = article.find("div", {"class": "cnn-search__result-body"})
         try:
             article_soup = self._get_CNN_soup(article_url)
-            article_class = (
-                article_soup.find("body")
-                .find("div", {"class": "pg-right-rail-tall pg-wrapper "})
-                .find("article")
+            logging.info("Getting text body")
+            article_class = article_soup.find("body")
+            logging.info("Finding Div")
+            article_class = article_class.find(
+                "div", {"class": "pg-right-rail-tall pg-wrapper"}
             )
+            logging.info("Finding Rail")
+            article_class = article_class.find(
+                "article", {"pg-rail-tall pg-rail--align-right"}
+            )
+            logging.info("Extracting metadata")
             topic = article_class.find("meta", {"itemprop": "isPartOf"})["content"]
             author = article_class.find("meta", {"itemprop": "author"})["content"]
             date = article_class.find("meta", {"itemprop": "datePublished"})["content"]
             self.data_with_tags += 1
 
         except (AttributeError, TypeError) as e:
-            logging.error(f"Doesn't contain metadata")
+            logging.error(f"Doesn't contain metadata: {str(e)}")
             topic, author, date = None, None, None
         except Exception as e:
             logging.error(f"Failed to get article because of {str(e)}")
