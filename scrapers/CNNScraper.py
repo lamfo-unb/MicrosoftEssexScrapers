@@ -123,7 +123,6 @@ class CNN_Scraper(Scraper):
                     "Country",
                 ]
             )
-
         self.prev_urls = self.prev_articles["URL"].to_list()
 
     def _load_CNN_page(self, url):
