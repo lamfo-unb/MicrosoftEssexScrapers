@@ -156,10 +156,12 @@ class WashingtonPost_Scraper(Scraper):
             category = "NA"
             complete_data = False
         try:
-            title = soup.find("span", {"data-qa" : "headline-opinion-text"}).text
+            title = soup.find("span", {"data-qa": "headline-opinion-text"}).text
         except AttributeError:
             try:
-                title = soup.find("h1", {"class" : "font--headline balanced-headline pb-md undefined"}).text
+                title = soup.find(
+                    "h1", {"class": "font--headline balanced-headline pb-md undefined"}
+                ).text
             except AttributeError:
                 title = "NA"
                 complete_data = False
