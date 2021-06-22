@@ -77,6 +77,7 @@ class Article:
                 "Source": ["CNN"],
                 "Category": [self.categories],
                 "Search": [self.search_terms],
+                "Title": [self.title],
                 "Text": [self.content],
                 "Author": [self.author],
                 "Country": ["USA"],
@@ -207,7 +208,11 @@ class CNN_Scraper(Scraper):
     def _create_article(self, article):
         title = article.find("h3", {"class": "cnn-search__result-headline"})
         article_url = "https:" + title.find_all("a", href=True)[0]["href"]
-        if "live-news" in article_url or article_url in self.prev_urls:
+        if (
+            "live-news" in article_url
+            or "/health/" in article_url
+            or article_url in self.prev_urls
+        ):
             return
         content = article.find("div", {"class": "cnn-search__result-body"})
         try:
