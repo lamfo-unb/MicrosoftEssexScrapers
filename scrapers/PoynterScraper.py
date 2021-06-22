@@ -23,6 +23,7 @@ except Exception:
 
 timeout = 60
 
+
 class Poynter_Scraper(Scraper):
     timeout = 60  # should give up trying to load page after 10 seconds
     data_with_tags = 0
@@ -49,7 +50,14 @@ class Poynter_Scraper(Scraper):
         except FileNotFoundError:
             self.prev_articles = pd.DataFrame(
                 columns=[
-                  "PreviewURL", "ReportURL", "Date", "Source", "Title", "Label", "Explanation", "Country"
+                    "PreviewURL",
+                    "ReportURL",
+                    "Date",
+                    "Source",
+                    "Title",
+                    "Label",
+                    "Explanation",
+                    "Country",
                 ]
             )
 
@@ -82,21 +90,22 @@ class Poynter_Scraper(Scraper):
         results = soup.find_all("a", {"class": "page-numbers"})
         total = results[-2].text
         return int(total)
-    
+
     def _scrape_article(self, article):
-        preview_url = article.find("a")["href"]  
+        preview_url = article.find("a")["href"]
         if preview_url in self.prev_urls:
-          return
+            return
         article_info = dict.fromkeys(self.prev_articles.columns)
         title_label_info = article.find("a").text.split(":")
         label, title = title_label_info[0], "".join([s for s in title_label_info[1:]])
         date, countries = article.find("strong").text.split("|")
         source = article.find("p").text.split(": ")[1]
 
-        
         article_soup = self._get_soup(preview_url)
-        article_text = article_soup.find("div", {"class" : "post-container"})
-        explanation = article_text.find("p", {"class" : "entry-content__text entry-content__text--explanation"}).text.split(":")[1]
+        article_text = article_soup.find("div", {"class": "post-container"})
+        explanation = article_text.find(
+            "p", {"class": "entry-content__text entry-content__text--explanation"}
+        ).text.split(":")[1]
         report_url = article_text.find("a")["href"]
 
         article_info["Label"] = label
@@ -108,28 +117,35 @@ class Poynter_Scraper(Scraper):
         article_info["Explanation"] = explanation
         article_info["Country"] = countries
 
-        self.prev_articles = self.prev_articles.append(pd.DataFrame.from_dict(article_info, orient="index").transpose(), ignore_index=True)
+        self.prev_articles = self.prev_articles.append(
+            pd.DataFrame.from_dict(article_info, orient="index").transpose(),
+            ignore_index=True,
+        )
         self.articles_scraped += 1
-    def run(self):
-      pages = self._get_total_results()
-      try:
-          #for i in range(1, 4):
-          for i in range(1, pages + 1):
-              url = self.url + f"page/{i}/"
-              soup = self._get_soup(url)
-              [self._scrape_article(article) for article in soup.find_all("div", {"class" : "post-container"})]
-      except Exception as e:
-          logging.info(f"Failed to scrape articles: {str(e)}")
-      finally:
-          self.prev_articles.to_csv(self.path)
 
-          run_data = f"Completed run. Scraped {self.articles_scraped} articles."
-          self._update_log(run_data)
-          logging.info(run_data)
-          try:
-              self.driver.close()
-          except Exception as e:
-              logging.error(f"Unable to close the chrome driver: {str(e)}")
+    def run(self):
+        pages = self._get_total_results()
+        try:
+            # for i in range(1, 4):
+            for i in range(1, pages + 1):
+                url = self.url + f"page/{i}/"
+                soup = self._get_soup(url)
+                [
+                    self._scrape_article(article)
+                    for article in soup.find_all("div", {"class": "post-container"})
+                ]
+        except Exception as e:
+            logging.info(f"Failed to scrape articles: {str(e)}")
+        finally:
+            self.prev_articles.to_csv(self.path)
+
+            run_data = f"Completed run. Scraped {self.articles_scraped} articles."
+            self._update_log(run_data)
+            logging.info(run_data)
+            try:
+                self.driver.close()
+            except Exception as e:
+                logging.error(f"Unable to close the chrome driver: {str(e)}")
 
     def get_name(self):
         return "Poynter Scraper"
@@ -150,7 +166,5 @@ if __name__ == "__main__":
         datefmt="%m-%d %H:%M",
         handlers=[logging.StreamHandler()],
     )
-    Poynter_scraper = Poynter_Scraper(
-        os.path.join(os.getcwd(), "results\\Poynter")
-    )
+    Poynter_scraper = Poynter_Scraper(os.path.join(os.getcwd(), "results\\Poynter"))
     Poynter_scraper.run()
