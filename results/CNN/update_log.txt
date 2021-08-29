@@ -21,3 +21,4 @@ On 2021-06-08 15:07:26.626766: Completed run. Scraped 82 with 75 fully filled ou
 On 2021-06-08 18:13:16.681391: Completed run. Scraped 761 with 672 fully filled out articles.
 On 2021-06-09 07:08:27.394236: Completed run. Scraped 2791 with 2457 fully filled out articles.
 On 2021-06-23 22:14:23.919394: Completed run. Scraped 4 with 2 fully filled out articles.
+On 2021-08-28 21:50:08.694987: Completed run. Scraped 3 with 3 fully filled out articles.

@@ -129,7 +129,7 @@ class CNN_Scraper(Scraper):
 
         self.driver.get(url)
         wait = WebDriverWait(self.driver, self.timeout)
-        wait.until(EC.presence_of_element_located((By.ID, "segment")))
+        wait.until(EC.presence_of_element_located((By.ID, "psm_thirdparty")))
 
     def _get_CNN_soup(self, url):
 
